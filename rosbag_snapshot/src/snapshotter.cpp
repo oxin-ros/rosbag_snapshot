@@ -123,8 +123,21 @@ void MessageQueue::clear()
 
 void MessageQueue::_clear()
 {
-  queue_.clear();
-  size_ = 0;
+  if (!queue_.empty()) {
+    SnapshotMessage latest = _pop_back();
+
+    queue_.clear();
+    size_ = 0;
+
+    ros::M_string::const_iterator it = latest.connection_header->find("latching");
+    if ((it != latest.connection_header->end()) && (it->second == "1")) {
+      // Restore the latest message for latched topics
+      _push(latest);
+    }
+  } else {
+    queue_.clear();
+    size_ = 0;
+  }
 }
 
 ros::Duration MessageQueue::duration() const
@@ -191,6 +204,12 @@ SnapshotMessage MessageQueue::pop()
   return _pop();
 }
 
+SnapshotMessage MessageQueue::pop_back()
+{
+  boost::mutex::scoped_lock l(lock);
+  return _pop_back();
+}
+
 int64_t MessageQueue::getMessageSize(SnapshotMessage const& snapshot_msg) const
 {
   return snapshot_msg.msg->size() +
@@ -216,6 +235,15 @@ SnapshotMessage MessageQueue::_pop()
 {
   SnapshotMessage tmp = queue_.front();
   queue_.pop_front();
+  //  Remove size of popped message to maintain correctness of size_
+  size_ -= getMessageSize(tmp);
+  return tmp;
+}
+
+SnapshotMessage MessageQueue::_pop_back()
+{
+  SnapshotMessage tmp = queue_.back();
+  queue_.pop_back();
   //  Remove size of popped message to maintain correctness of size_
   size_ -= getMessageSize(tmp);
   return tmp;
