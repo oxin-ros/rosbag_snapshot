@@ -184,6 +184,8 @@ private:
   // Truncate front of queue as needed to fit a new message of specified size and time. Returns False if this is
   // impossible.
   bool preparePush(int32_t size, ros::Time const& time);
+  // Returns true if the messages in the queue are latched, false if not latched or the queue is empty
+  bool _is_latched();
 };
 
 /* Snapshotter node. Maintains a circular buffer of the most recent messages from configured topics

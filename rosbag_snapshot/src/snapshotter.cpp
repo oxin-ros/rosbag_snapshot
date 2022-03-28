@@ -123,17 +123,12 @@ void MessageQueue::clear()
 
 void MessageQueue::_clear()
 {
-  if (!queue_.empty()) {
+  if (_is_latched()) {
+    // Restore the latest message for latched topics
     SnapshotMessage latest = _pop_back();
-
     queue_.clear();
     size_ = 0;
-
-    ros::M_string::const_iterator it = latest.connection_header->find("latching");
-    if ((it != latest.connection_header->end()) && (it->second == "1")) {
-      // Restore the latest message for latched topics
-      _push(latest);
-    }
+    _push(latest);
   } else {
     queue_.clear();
     size_ = 0;
@@ -255,7 +250,8 @@ MessageQueue::range_t MessageQueue::rangeFromTimes(Time const& start, Time const
   range_t::second_type end = queue_.end();
 
   // Increment / Decrement iterators until time contraints are met
-  if (!start.isZero())
+  // Don't increment the begin iterator for latched messages since their timestamps can be old
+  if (!start.isZero() && !_is_latched())
   {
     while (begin != end && (*begin).time < start)
       ++begin;
@@ -266,6 +262,21 @@ MessageQueue::range_t MessageQueue::rangeFromTimes(Time const& start, Time const
       --end;
   }
   return range_t(begin, end);
+}
+
+bool MessageQueue::_is_latched() {
+  bool latched = false;
+
+  if (!queue_.empty()) {
+    SnapshotMessage latest = queue_.back();
+
+    ros::M_string::const_iterator it = latest.connection_header->find("latching");
+    if ((it != latest.connection_header->end()) && (it->second == "1")) { 
+      latched = true;
+    }
+  }
+
+  return latched;
 }
 
 const int Snapshotter::QUEUE_SIZE = 10;
@@ -356,6 +367,8 @@ bool Snapshotter::writeTopic(rosbag::Bag& bag, MessageQueue& message_queue, stri
                              rosbag_snapshot_msgs::TriggerSnapshot::Request& req,
                              rosbag_snapshot_msgs::TriggerSnapshot::Response& res)
 {
+  ros::Time now = ros::Time::now();
+
   // acquire lock for this queue
   boost::mutex::scoped_lock l(message_queue.lock);
 
@@ -380,9 +393,17 @@ bool Snapshotter::writeTopic(rosbag::Bag& bag, MessageQueue& message_queue, stri
   // write queue
   try
   {
+    if (req.start_time == ros::Time(0)) {
+      req.start_time = now - message_queue.options_.duration_limit_;
+    }
+
     for (MessageQueue::range_t::first_type msg_it = range.first; msg_it != range.second; ++msg_it)
     {
-      SnapshotMessage const& msg = *msg_it;
+      SnapshotMessage msg = *msg_it;
+      // Latched messages can have old timestamps so set the timestamp to the bag start time in this case
+      if (msg.time < req.start_time) {
+        msg.time = req.start_time;
+      }
       bag.write(topic, msg.time, msg.msg, msg.connection_header);
     }
   }
