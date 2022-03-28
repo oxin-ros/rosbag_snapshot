@@ -393,16 +393,18 @@ bool Snapshotter::writeTopic(rosbag::Bag& bag, MessageQueue& message_queue, stri
   // write queue
   try
   {
-    if (req.start_time == ros::Time(0)) {
-      req.start_time = now - message_queue.options_.duration_limit_;
+    ros::Time start = req.start_time;
+    
+    if (start == ros::Time(0)) {
+      start = now - message_queue.options_.duration_limit_;
     }
 
     for (MessageQueue::range_t::first_type msg_it = range.first; msg_it != range.second; ++msg_it)
     {
       SnapshotMessage msg = *msg_it;
       // Latched messages can have old timestamps so set the timestamp to the bag start time in this case
-      if (msg.time < req.start_time) {
-        msg.time = req.start_time;
+      if (msg.time < start) {
+        msg.time = start;
       }
       bag.write(topic, msg.time, msg.msg, msg.connection_header);
     }
