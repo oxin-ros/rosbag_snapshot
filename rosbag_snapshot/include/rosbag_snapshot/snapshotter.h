@@ -184,7 +184,7 @@ private:
   // Truncate front of queue as needed to fit a new message of specified size and time. Returns False if this is
   // impossible.
   bool preparePush(int32_t size, ros::Time const& time);
-  // Returns true if the messages in the queue are latched, false if not latched or the queue is empty
+  // Returns true if queue messages are latched, false if not latched or queue is empty. Does not obtain lock
   bool _is_latched();
 };
 
