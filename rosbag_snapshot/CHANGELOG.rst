@@ -2,8 +2,8 @@
 Changelog for package rosbag_snapshot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2022-04-11)
+------------------
 * Update _is_latched comment to specify that lock is not obtained
 * Don't alter the start_time of the trigger request
 * Ensure latched topics have timestamps >= start of snapshot bag
