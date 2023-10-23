@@ -132,6 +132,11 @@ struct ROSBAG_DECL SnapshotMessage
   boost::shared_ptr<ros::M_string> connection_header;
   // ROS time when messaged arrived (does not use header stamp)
   ros::Time time;
+
+  // Get the callid field from the message connection header. Returns empty string if callerid is not found
+  std::string getCallerId() const;
+  // Return true if this message is from a latched topic
+  bool isLatched() const;
 };
 
 /* Stores a queue of buffered messages for a single topic ensuring
@@ -160,6 +165,8 @@ public:
   void push(SnapshotMessage const& msg);
   // Removes the message at the front of the queue (oldest) and returns it
   SnapshotMessage pop();
+  // Removes the message at the back of the queue (newest) and returns it
+  SnapshotMessage popBack();
   // Returns the time difference between back and front of queue, or 0 if size <= 1
   ros::Duration duration() const;
   // Clear internal buffer
@@ -174,17 +181,25 @@ public:
 
   // Return the total message size including the meta-information
   int64_t getMessageSize(SnapshotMessage const& msg) const;
+  // Latest messages from each publisher on a latched topic
+  std::map<std::string, SnapshotMessage> latest_latched;
 
 private:
   // Internal push whitch does not obtain lock
   void _push(SnapshotMessage const& msg);
   // Internal pop which does not obtain lock
   SnapshotMessage _pop();
+  // Internal popBack which does not obtain lock
+  SnapshotMessage _popBack();
   // Internal clear which does not obtain lock
   void _clear();
   // Truncate front of queue as needed to fit a new message of specified size and time. Returns False if this is
   // impossible.
-  bool preparePush(int32_t size, ros::Time const& time);
+  bool preparePush(int32_t size, ros::Time const& time, const std::string& callerid);
+  // Returns true if queue contains latched messages, false if not or queue is empty. Does not obtain lock
+  bool isLatched();
+  // Removes all messages from the specified callerid
+  void removeCallerid(const std::string& callerid);
 };
 
 /* Snapshotter node. Maintains a circular buffer of the most recent messages from configured topics
