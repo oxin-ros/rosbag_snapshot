@@ -31,6 +31,7 @@
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
+#include <algorithm>
 #include <queue>
 #include <string>
 #include <time.h>
@@ -442,7 +443,7 @@ bool Snapshotter::writeTopic(rosbag::Bag& bag, MessageQueue& message_queue, stri
 
     if (start.is_zero())
     {
-        start = now - (message_queue.options_.duration_limit_ > options_.default_duration_limit_ ? message_queue.options_.duration_limit_ : options_.default_duration_limit_);
+        start = now - std::max(message_queue.options_.duration_limit_, options_.default_duration_limit_);
     }
 
     std::vector<std::string> callers;
