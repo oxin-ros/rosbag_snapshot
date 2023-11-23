@@ -218,13 +218,13 @@ class TestRosbagSnapshot(unittest.TestCase):
         '''
         # Pause, resume, and pause again so buffer should only contain data from a known time internal
         self._pause()
-        rospy.sleep(1.5)
+        rospy.sleep(2.0)
         start = rospy.Time.now()
         self._resume()
         rospy.sleep(3.0)
         self._pause()
+        rospy.sleep(2.0)
         stop = rospy.Time.now()
-        rospy.sleep(1.0)
 
         # Write all buffer data, check that only data from resumed interval is present
         filename = self._assert_write_success()

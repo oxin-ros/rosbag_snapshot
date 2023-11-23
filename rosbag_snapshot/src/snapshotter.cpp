@@ -331,7 +331,7 @@ void Snapshotter::fixTopicOptions(SnapshotterTopicOptions& options)
   if (options.memory_limit_ == SnapshotterTopicOptions::INHERIT_MEMORY_LIMIT)
     options.memory_limit_ = options_.default_memory_limit_;
   if (options.count_limit_ == SnapshotterTopicOptions::INHERIT_COUNT_LIMIT)
-    options.count_limit_ = options_.default_memory_limit_;
+    options.count_limit_ = options_.default_count_limit_;
 }
 
 bool Snapshotter::postfixFilename(string& file)
@@ -442,7 +442,7 @@ bool Snapshotter::writeTopic(rosbag::Bag& bag, MessageQueue& message_queue, stri
 
     if (start.is_zero())
     {
-      start = now - message_queue.options_.duration_limit_;
+        start = now - (message_queue.options_.duration_limit_ > options_.default_duration_limit_ ? message_queue.options_.duration_limit_ : options_.default_duration_limit_);
     }
 
     std::vector<std::string> callers;
