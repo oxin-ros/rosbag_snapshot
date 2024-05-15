@@ -81,7 +81,9 @@ bool parseOptions(po::variables_map& vm, int argc, char** argv)
     ("topic", po::value<std::vector<std::string> >(),
      "Topic to buffer. If triggering write, write only these topics instead of all buffered topics.")
     ("compression,c", po::value<std::string>()->default_value("uncompressed"),
-     "Bag compression type. Default: uncompressed. Other options are: BZ2, LZ4.");
+     "Bag compression type. Default: uncompressed. Other options are: BZ2, LZ4.")
+    ("status-period", po::value<double>()->default_value(1.0),
+     "Interval in seconds to publish status messages. Default: 1");
   // clang-format on
   po::positional_options_description p;
   p.add("topic", -1);
@@ -129,6 +131,7 @@ bool parseVariablesMap(SnapshotterOptions& opts, po::variables_map const& vm)
   else opts.clear_buffer_ = true;
   opts.all_topics_ = vm.count("all");
   opts.compression_ = vm["compression"].as<std::string>();
+  opts.status_period_ = ros::Duration(vm["status-period"].as<double>());
   return true;
 }
 
@@ -170,6 +173,8 @@ void appendParamOptions(ros::NodeHandle& nh, SnapshotterOptions& opts)
     opts.default_duration_limit_ = ros::Duration(tmp);
   if (nh.getParam("default_count_limit", default_count))
     opts.default_count_limit_ = default_count;
+  if (nh.getParam("status_period", tmp))
+    opts.status_period_ = ros::Duration(tmp);
   if (nh.getParam("clear_buffer", clear_buffer))
     opts.clear_buffer_ = clear_buffer;
   nh.param("record_all_topics", opts.all_topics_, opts.all_topics_);
